@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1.0">
+  <title>Is it Worker?</title>
+  <style>
+    body{font-family:sans-serif;text-align:center;}
+    h1{font-size:1.2rem;}
+    p,ul{margin:8px auto;}
+    p{max-width:380px;}
+    ul{max-width:320px;list-style:none;text-align:start;}
+    #result{font-weight:bold;word-wrap:break-word;}
+    a,a:visited{color:initial;}
+  </style>
+  <script type="module">
+    const test = location.search.slice(1).trim();
+    if (test.length) {
+      const worker = new Worker('./worker.js');
+      worker.addEventListener('message', ({data: [type, keys]}) => {
+        result.textContent = type === 'undefined' ?
+          `Nope, no ${test} in Workers.` :
+          (type === 'error' ?
+            `Oooops, ${test} ${type} is:` :
+            `Yep, ${test} type is: ${type}.`);
+        if (keys.length) {
+          const ul = document.createElement('ul');
+          for (const key of keys) {
+            const li = ul.appendChild(document.createElement('li'));
+            if (typeof key === 'object')
+              li.textContent = key.message;
+            else if (/^Symbol\(.*?\)$/.test(key))
+              li.textContent = key;
+            else {
+              Object.assign(li.appendChild(document.createElement('a')), {
+                href: `?${test}.${key}`,
+                textContent: key
+              });
+            }
+          }
+          result.after(ul);
+        }
+      }, {once: true});
+      worker.postMessage(test);
+    }
+    else
+      result.textContent = 'Nothing to test.';
+  </script>
+</head>
+<body>
+  <h1>Is it Worker?</h1>
+  <p>
+    This page allows anyone to test global references and classes available in a <em>Web Worker</em>.
+  </p>
+  <p>
+    Simply use, as example, <code>?self</code> as search parameter, and see the <em>yep</em>/<em>nope</em> related result.
+  </p>
+  <p id="result"></p>
+</body>
+</html>
